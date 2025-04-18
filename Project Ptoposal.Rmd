@@ -1,0 +1,108 @@
+---
+title: "Stat 245 -- Project Proposal"
+author: "John, Chaeyoung, Hong Gi, Gloria Grace, James"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  pdf_document:
+    fig_height: 2.2
+    fig_width: 4
+  html_document:
+    fig_height: 2.2
+    fig_width: 4
+  word_document:
+    fig_height: 2.2
+    fig_width: 4
+---
+
+```{r, setup, include = FALSE}
+# load packages that are going to be used
+require(tidyverse)   # this loads mosaic, ggformula, etc. too
+require(ggformula)
+require(mosaic)
+
+# Some customization.  You can alter or delete as desired (if you know what you are doing).
+
+theme_set(theme_bw(base_size=12))     # change theme for ggplot2/ggformula
+
+knitr::opts_chunk$set(
+  echo = TRUE,      # for homework, always show R code (this is the default)
+  tidy = FALSE,     # display code as typed (rather than reformatted)
+  size = "small",   # slightly smaller font for code
+  message = FALSE, warning = FALSE) # don't print warnings or messages in compiled document. So you MUST check them in RStudio!
+```
+
+## Project Partner
+
+The project partner that we are working with is Calvin Institute of Christian Worship with funds provided by Lily Endowment Inc. The main mission is to further develop an understanding of how the COVID-19 pandemic has influenced corporate worship practices in Christian churches and study how congregations are making COVID-19 related decisions.
+
+More details can be found [here](https://sites.google.com/students.calvin.edu/covid-19worshipstudy/home)
+
+Contact person: 
+Erica Boldenow, PhD (Assistant Professor of Biology and Public Health at Calvin University)
+ejb25@calvin.edu
+(616) 526-6490
+
+Kelly DuBois, PhD (Assistant Professor of Biology and Public Health at Calvin University)
+kelly.dubois@calvin.edu
+(616) 526-6668
+
+
+## Goals and Deliverables
+
+GOALS
+
+- To improve and update the active graphics on the website to fit additional data.
+- Generate extract data that summarize the run statistic on data that they find.
+- Find more findings about the amount of weeks closed by looking and comparing different denominations' and 'Regional denominations'
+- How date and times might impact the number of weeks closed. 
+- Put out more major findings. 
+
+
+DELIVERABLES
+
+- New graphics for the website investigating new findings
+- Update the current graphics to include the additional data
+
+## Data
+
+The Data that we will use is the COVID-19 Worship Study Data. It is in an electronic excel file. 
+
+## Data Prep
+
+One of the things that we might do in order to get the data ready is to rearrange one of the rows. Looking how the data is formatted, it seems like the first row is the heading and the second row is explaining what questions are. What we might do is to add another worksheet in the excel and create a separate table of explanation of each questions are. 
+
+Multiple questions have many choices which have resulted in T and F answers in the dataset. This will make the data difficult to manipulate and turn into grpahics most likely, so we will investigate ways to make it easier.
+
+In the data, some of the questions were revised in the middle of the survey process so some of the people who took the survey early did not answer every question and the data is all blank. We might need to consider if we decide to use a couple of variables from the newer questions.
+
+
+## Background
+
+To gain context for our project we will be referring to the following documents and resources: The original project plan presented by our advisors at the start of their project, the COVID worship website lined above and [this]("https://www.thebanner.org/news/2021/07/calvin-covid-worship-study-collecting-pandemic-findings?fbclid=IwAR1Aegu4t2lEgqhLM3a4Q8nL3Sxni1_bRhqK-aXXjbv5bz_8DcUM2ed5vFk") article which was produced in the Banner Journal. 
+
+These resources will provide appropriate background information that is relative to the time this survey was given in 2020. Additionally, it will help us understand the purpose of this project in the eyes of our advisors and how they planned on demonstrating the project.
+
+
+
+## Current Skills
+
+Skills and strengths that our group members bring to the project that might be useful and helpful would be:
+
+- GitHub
+- RStudio
+- Excel. 
+
+All of the skills could be helpful for us to build and find other findings through data and graphics. 
+
+## Work Plan
+
+We will have two small groups within our team so that we could find time to work on the project efficiently. James will be the main communicator who will be communicating with the professor and two small groups. We also decided to meet every week on Monday after class to divide task and keep up with each other to see where each other at. 
+
+Communication wise, we decided to use instagram as a group chat where everyone can be more active and responsive. 
+
+## Request
+
+We might need help to convert multiple answer question to count data. For example, there are a couple of question, that allows people to pick multiple answers.
+
+
+  
