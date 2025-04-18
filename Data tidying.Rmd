@@ -1,0 +1,91 @@
+---
+title: "Stat 245 -- Data Tidying"
+author: "A. Student"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  pdf_document:
+    fig_height: 2.2
+    fig_width: 4
+  html_document:
+    fig_height: 2.2
+    fig_width: 4
+  word_document:
+    fig_height: 2.2
+    fig_width: 4
+---
+
+```{r, setup, include = FALSE}
+# load packages that are going to be used
+require(tidyverse)   # this loads mosaic, ggformula, etc. too
+require(ggformula)
+require(mosaic)
+library(qualtRics)
+library(dplyr)
+library(readxl)
+
+# Some customization.  You can alter or delete as desired (if you know what you are doing).
+
+theme_set(theme_bw(base_size=12))     # change theme for ggplot2/ggformula
+
+knitr::opts_chunk$set(
+  echo = TRUE,      # for homework, always show R code (this is the default)
+  tidy = FALSE,     # display code as typed (rather than reformatted)
+  size = "small",   # slightly smaller font for code
+  message = FALSE, warning = FALSE) # don't print warnings or messages in compiled document. So you MUST check them in RStudio!
+```
+
+
+## Data
+
+
+
+```{r data import}
+churchData <- read_csv('data/data.csv')
+write_csv(churchData, 'data/data.csv')
+
+Church <-read_survey('data/data.csv', legacy = TRUE)
+```
+
+
+
+```{r}
+Church <- rename(churchData,  
+                              "Hand_Sanitizer" = "Q15.10",
+                              "Social_Distancing" = "Q15.5",
+                              "Additional_Cleaning" = "Q15.11",
+                              "Removal_Touched_Item" = "Q15.15",
+                              "Signage_of_protocols"= "Q15.4",
+                              "Annnouncement" = "Q15.14",
+                              "Traffic_Control" = "Q15.12",
+                              "Weeks_Closed" = "Q30.X...28",
+                              "Services_Per_Week" = "Q29...8",
+                              "Specific_denom" = "Specific denom",
+                              "Regions" = "QR: Region",
+                              "Mask_Required" = "Q30.2",
+                              "Covid_Congregation" = "Q22",
+                              "Livestreaming" = "Q10.3",
+                              "In_person_attendees" = "Q8", 
+                              "Over65_Props" = "Q9") %>% 
+                              
+
+  drop_na(Specific_denom) %>% 
+  mutate(Weeks_Closed = parse_number(Weeks_Closed)) 
+```
+
+
+```{r}
+Church <- Church |>
+  select(Weeks_Closed, Social_Distancing, Specific_denom, 
+         Livestreaming, Regions, Signage_of_protocols, Over65_Props) %>% 
+  na.omit()
+```
+
+```{r}
+glimpse(Church)
+```
+
+
+
+
+
+

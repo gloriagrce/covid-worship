@@ -1,0 +1,342 @@
+---
+title: "Draft Graphics"
+author: "Chaeyoung, Hong Gi, Gloria, John, James"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  pdf_document:
+    fig_height: 3.5
+    fig_width: 6
+  html_document:
+    fig_height: 2.2
+    fig_width: 4
+  word_document:
+    fig_height: 2.2
+    fig_width: 4
+---
+
+```{r, setup, include = FALSE}
+# load packages that are going to be used
+require(mosaic)
+library(tidyverse)   # this loads mosaic, ggformula, etc. too
+library(ggformula)
+require(qualtRics)
+library(dplyr)
+library(ggplot2)
+library("reshape2") 
+require(gcookbook)
+# Some customization.  You can alter or delete as desired (if you know what you are doing).
+
+theme_set(theme_bw(base_size=12))     # change theme for ggplot2/ggformula
+
+knitr::opts_chunk$set(
+  echo = TRUE,      # for homework, always show R code (this is the default)
+  tidy = FALSE,     # display code as typed (rather than reformatted)
+  size = "small",   # slightly smaller font for code
+  message = FALSE, warning = FALSE) # don't print warnings or messages in compiled document. So you MUST check them in RStudio!
+```
+
+## Data
+
+```{r}
+churchData <- read_csv('data/churchdata.csv')
+Church <-read_survey('data/data.csv', legacy = TRUE)
+Church <- rename(Church,  
+                              "Hand_Sanitizer" = "Q15.10",
+                              "Social_Distancing" = "Q15.5",
+                              "Additional_Cleaning" = "Q15.11",
+                              "Removal_Touched_Item" = "Q15.15",
+                              "Signage_of_protocols"= "Q15.4",
+                              "Annnouncement" = "Q15.14",
+                              "Traffic_Control" = "Q15.12",
+                              "Weeks_Closed" = "Q30.X...28",
+                              "Services_Per_Week" = "Q29...8",
+                              "Specific_denom" = "Specific denom",
+                              "Regions" = "QR: Region",
+                              "Mask_Required" = "Q30.2",
+                              "Covid_Congregation" = "Q22",
+                              "Livestreaming" = "Q10.3",
+                              "In_person_attendees" = "Q8",
+                            "Over65_Prop" = "Q9") %>% 
+                              
+  drop_na(Specific_denom) %>% 
+  mutate(Weeks_Closed = parse_number(Weeks_Closed)) 
+
+glimpse(Church)
+```
+```{r}
+Church <- Church |>
+  select(Weeks_Closed, Social_Distancing, Specific_denom, 
+         Livestreaming, Regions, Signage_of_protocols, Over65_Prop) %>% 
+  na.omit()
+```
+
+## Graph 1: Denomination
+
+```{r}
+table(Church$Specific_denom)
+
+table(Church$`Grouped Denom`)
+```
+
+
+```{r}
+denomchurch <- filter(Church, Specific_denom %in% c("ANG", "B", "CRC", "ELCA", "ND", "PCA", "RCA"))
+```
+
+```{r, include = FALSE}
+gf_bar(~Specific_denom, data = Church) %>% 
+  gf_refine(coord_flip()) %>% 
+  gf_labs(title = "Denomination", 
+          x = "Denomination", 
+          y = "Number of Churches")
+       
+```
+
+```{r}
+churchesDenom <- denomchurch |>
+  mutate(Specific_denom = fct_relevel(Specific_denom,
+                                    "B",
+                                    "ND",
+                                    "RCA",
+                                    "ANG",
+                                    "ELCA",
+                                    "CRC",
+                                    "PCA")
+  )
+```
+
+```{r}
+ggplot(churchesDenom, 
+       aes(x=Specific_denom, fill = Specific_denom)) +
+  geom_bar() +
+  labs(x = "Denominations", y = "Number of Churches", fill = "Denominations") +
+  geom_text(stat='count', aes(label=..count..), vjust=-0.3, size = 4) + 
+  scale_fill_discrete(labels=c("Anglican Church", 
+                               "Baptist Church", 
+                               "Christian Reformed Church", 
+                               "Evangelical Lutheran Church in America", 
+                               "Non-denomination", 
+                               "Presbyterian Church of America", 
+                               "Reformed Church in America")) + 
+  scale_fill_brewer(palette = "Greens") +
+  theme(text=element_text(size=15))
+```
+
+```{r DONE, include = FALSE}
+ggplot(denomchurch, 
+       aes(x=Specific_denom, fill = Specific_denom)) +
+  geom_bar() +
+  labs(x = "Denominations", y = "Number of Churches", fill = "Denominations") +
+  geom_text(stat='count', aes(label=..count..), vjust=-0.3, size = 4) + 
+  scale_fill_discrete(labels=c("Baptist Church",
+                                      "Non-denomination",
+                                      "Reformed Church in America", 
+                                      "Anglican Church",
+                                      "Evangelical Lutheran Church",
+                                      "Christian Reformed Church",
+                                      "Presbyterian Church of America")) 
+```
+
+
+
+
+
+```{r}
+churchesDenom <- denomchurch |>
+  mutate(Specific_denom = fct_relevel(Specific_denom,
+                                    "B",
+                                    "ND",
+                                    "RCA",
+                                    "ANG",
+                                    "ELCA",
+                                    "CRC",
+                                    "PCA")
+  )
+```
+
+```{r}
+gf_histogram(~Weeks_Closed, data = Church)
+```
+
+
+
+```{r}
+gf_bar(~Specific_denom, data = churchesDenom, fill = ~Specific_denom) %>% 
+  gf_refine(scale_x_discrete(labels=c("Baptist Church",
+                                      "Non-denomination",
+                                      "Reformed Church in America", 
+                                      "Anglican Church",
+                                      "Evangelical Lutheran Church in America",
+                                      "Christian Reformed Church",
+                                      "Presbyterian Church of America" )),coord_flip())|>
+  gf_labs(x = "Denomination", 
+          y = "Number of Churches",
+          fill = NULL) %>% 
+  gf_theme(scale_fill_brewer(palette = 'Blues'))|>
+  gf_theme(legend.position = 'none')
+  
+```
+For this graphic, we would have to think further about the title and color of the graph that we want to highlight the main message of the graph. I think It would be helpful to rename the churches abbriviation too (still not a hundred percent sure). 
+
+
+
+
+
+#### Interpretation
+
+This graphic shows the number of churches in each denomination that filled out the survey. This is relevant because it can help us understand many other graphs based on how many responses we got from certain denomination. The main observation is that the Presbyterian Church in America had the most results followed by the CRC and Evangelical Lutheran Church in America. 
+
+## Graph 2: Region
+
+```{r}
+table(Church$Region)
+```
+```{r} 
+denomchurch <- filter(denomchurch, Regions %in% c("SW", "NE", "W", "SE", "MW"))
+ 
+churchesRegion <- denomchurch|>
+  mutate(Regions = fct_relevel(Regions,
+                                    "SW",
+                                    "NE",
+                                    "W",
+                                    "SE",
+                                    "MW")) 
+table(churchesRegion$Regions)
+```
+
+```{r fig.width = 8}
+ggplot(churchesRegion, 
+       aes(x=Regions, fill = Regions)) +
+  geom_bar() +
+  labs(y = "Number of Churches") +
+  geom_text(stat='count', aes(label=..count..), vjust=-0.5) +
+  scale_fill_brewer(palette = "Blues")
+
+```
+
+```{r}
+gf_bar(~Regions, 
+       data = churchesRegion, fill = ~Regions,
+       position = 'dodge') |>
+  gf_refine(scale_x_discrete(labels=c("NA", 
+                                      "South West", 
+                                      "North East",  
+                                      "West", 
+                                      "South East",
+                                      "Midwest")), 
+            coord_flip())|>
+  gf_theme(scale_fill_brewer(palette = 'Reds')) |>
+  gf_theme(legend.position = 'none') |>
+  gf_labs(x = "Regions", y = "Number of Churches")
+ 
+```
+
+
+
+```{r}
+gf_bar(~Regions, data = Church,
+       fill = ~Social_Distancing,
+       position = 'dodge') |>
+  gf_refine(coord_flip()) |>
+  gf_labs(x = 'Regions') |>
+  gf_theme(scale_alpha_discrete())
+```
+
+
+One thing that we will need to take in consideration is the abbriviation for each region and wether or not we would need to explain each one inddividually. We will need to add the title and subtitle. 
+
+#### Interpretation
+
+This graphic shows the region of churches and whether or not they participated in "social distancing" within their church. This is relevant because it helps us understand regionally how people felt about the effectiveness and use of social distancing. We decided to include the use of NA because it shows that certain areas didn't even entertain the idea of "social distancing". The main observation is that the the Midwest has the most churches that practiced social distancing, however, we need to take into account what this graph doesn't show which is that the Midwest has the most responses which makes it look like there are the most there.
+
+For the NA, it means that the people who were answering the survey did not answer this question. 
+
+
+## Graph 3
+
+
+
+```{r}
+DenomOrder <- denomchurch |>
+  mutate(Specific_denom = fct_relevel(Specific_denom,
+                                    "B",
+                                    "ANG",
+                                    "PCA",
+                                    "ND",
+                                    "CRC",
+                                    "RCA",
+                                    "ELCA")
+  )
+```
+
+```{r}
+gf_boxplot(Specific_denom ~ Weeks_Closed, data = DenomOrder) %>% 
+   gf_refine(scale_y_discrete(labels=c("Baptist Church",
+                                      "Anglican Church",
+                                      "Presbyterian Church of America",
+                                      "Non-denomination",
+                                      "Christian Reformed Church", 
+                                      "Reformed Church in America", 
+                                      "Evangelical Lutheran Church in America")))|>
+  gf_labs(x = "Weeks Closed", y = NULL) 
+
+```
+
+
+
+
+Again, we would think whether it would be best to change the abbriviation or not. (we fixed it)
+
+#### Interpretation
+
+In graph three there are individual boxplots for each of the denominations who filled out the survey representing how many weeks their church was closed. Boxplots divide into the quarantines and also show the median and each denomination has a different median showing. Most denominations have some outliers but for the most part are compact showing that the range is close. We can learn the trends of different denominations based on how they compare to others. 
+
+## Graph 4 
+
+```{r}
+gf_histogram(~ Weeks_Closed | Social_Distancing, 
+       data = Church) %>% 
+  na.omit() %>% 
+  gf_labs(x = "Weeks Closed",
+          y = "Number of Churches", title = "Weeks Closed by Social Distancing") 
+```
+
+
+For this graph, we will have to find a way to name the facet and fix the axis labels. 
+
+#### Interpretation
+
+From this histogram, it shows that the number of churches that did social distancing is much higher than churches that does not. A lot of the churches that have social distancing have a maximum number of weeks closed in the 10-15 weeks. 
+
+## Graph 5
+
+```{r}
+gf_histogram(~Weeks_Closed | Livestreaming, data = Church) |>
+  gf_labs(title = "Number of Weeks Closed by Churches that Continue Livestreaming", 
+          x = "Weeks Closed", y = "Number of Churches")
+```
+
+
+For this graph, we will have to find a way to name the facet and fix the axis labels.
+
+#### Interpretation
+
+From this we can see that there was not a significant difference beween having livestreaming and not. However, it is visible that there seems to be more churches without livestreaming that opened back up after less than 10 weeks. 
+
+## Graph 6
+
+```{r}
+gf_boxplot(Regions ~ Weeks_Closed | Signage_of_protocols, data = churchesRegion) %>% 
+  gf_labs(x = "Weeks Closed", y = "Region",
+          title = "Signage of Protocols")
+```
+
+The facet boxplots above show the trend of "Weeks_Closed" by each Region into two facet based on the signage of protocols. The graph above shows that SE and W decreased the number of weeks closed when they held the signage of protocols. However, it is difficult to see the general trend of the weeks closed by the presence and absence of signage protocols.
+
+```{r}
+gf_histogram(~ Weeks_Closed | Signage_of_protocols, data = churchesRegion) %>% 
+  gf_labs(x = "Weeks Closed", y = "count",
+          title = "Signage of Protocols")
+```
+
+The histogram above shows the distributions of weeks closed by presence and absence of protocols. The histograms have similar distributions with no significant increase or decrease.

@@ -1,0 +1,410 @@
+---
+title: "Model Fitting Process - November 14"
+author: "Chaeyoung, Hong Gi, Gloria, John, James"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  pdf_document:
+    fig_height: 4
+    fig_width: 6
+  html_document:
+    fig_height: 3.3
+    fig_width: 6
+  word_document:
+    fig_height: 2.2
+    fig_width: 4
+---
+
+```{r setup, include=FALSE}
+require(tidyverse)
+require(ggformula)
+require(mosaic)
+require(qualtRics)
+require(dplyr)
+require(s245)
+require(DHARMa)
+require(MuMIn)
+require(glmmTMB)
+
+knitr::opts_chunk$set(
+  echo = TRUE,      # for homework, always show R code (this is the default)
+  tidy = FALSE,     # display code as typed (rather than reformatted)
+  size = "small",   # slightly smaller font for code
+  message = FALSE, warning = FALSE) # don't print warnings or messages in compiled document. So you MUST check them in RStudio!
+```
+
+
+```{r data import}
+churchData <- read_csv('data/data.csv')
+write_csv(churchData, 'data/data.csv')
+
+Church <-read_survey('data/data.csv', legacy = TRUE)
+```
+
+
+
+
+```{r wrangling, include=FALSE}
+Church <- rename(Church,  
+                              "Hand_Sanitizer" = "Q15.10",
+                              "Social_Distancing" = "Q15.5",
+                              "Additional_Cleaning" = "Q15.11",
+                              "Removal_Touched_Item" = "Q15.15",
+                              "Signage_of_protocols"= "Q15.4",
+                              "Annnouncement" = "Q15.14",
+                              "Traffic_Control" = "Q15.12",
+                              "Weeks_Closed" = "Q30.X...28",
+                              "Services_Per_Week" = "Q29...8",
+                              "Specific_denom" = "Specific denom",
+                              "Regions" = "QR: Region",
+                              "Mask_Required" = "Q30.2",
+                              "Covid_Congregation" = "Q22",
+                              "Livestreaming" = "Q10.3",
+                              "In_person_attendees" = "Q8", 
+                              "Over65_Props" = "Q9") %>% 
+                              
+
+  drop_na(Specific_denom) %>% 
+  mutate(Weeks_Closed = parse_number(Weeks_Closed)) 
+```
+
+
+```{r data wrangling slide}
+Church <- Church |>
+  select(Weeks_Closed, Social_Distancing, Specific_denom, 
+         Livestreaming, Regions, Signage_of_protocols, Over65_Props) %>% 
+  na.omit()
+
+summary(Church)
+```
+
+
+
+## Process Plan
+ 
+#### Causal Diagram (copy and paste git hub link below to get image )
+
+view at this link: https://github.com/jmw-75/photo-uploads/raw/main/img245.jpg
+
+
+**Response Variable**: Weeks Closed
+
+**Predictors**: Specific denomination, Vaccination, Protocols, Region, Small Groups, Social Distancing, livestreaming, In person attendees
+
+Notes: We were considering these predictors but we had some concerns and had to ask our partner for it. 
+Revisions: We asked our partner about these variables and was told to not include them.
+
+Vaccination
+
+Our planning process started with evaluating the variables that are available in our data. We took in to our consideration of how big our data which is 767 rows and 151 columns and consider the possible predictors to use and the ones we have to exclude. 
+
+Notes: 
+Region possibly interaction
+
+## Model Fitting
+
+```{r}
+model_church <- glmmTMB(Weeks_Closed ~ Social_Distancing 
+                        + Specific_denom 
+                        + Livestreaming  
+                        + Regions * Signage_of_protocols, 
+                        data = Church, 
+                        family = nbinom1(link = "log"))
+
+model_church2 <- glmmTMB(Weeks_Closed ~ Social_Distancing 
+                         + Specific_denom 
+                         + Livestreaming 
+                         + Regions * Signage_of_protocols, 
+                         data = Church, 
+                         family = nbinom2(link = "log"))
+
+
+BIC(model_church, model_church2)
+
+summary(model_church)
+```
+
+
+## We used negative binomial regression model because our response variable is considered as discrete. We ran an AIC test between nbinomial 1 and nbinomial 2 and found that AIC value for nbinomial 1 is lower. Therefore, we will be using the first model (nbinomial 1). 
+
+
+## Model Assessment
+
+```{r}
+Church <- Church |>
+  select(Weeks_Closed, Social_Distancing, Specific_denom, 
+         Livestreaming, Regions, Signage_of_protocols, Over65_Props) %>% 
+  na.omit() |>
+  mutate(preds = predict(model_church),
+         resids = resid(model_church))
+```
+
+### Scaled Residuals 
+
+
+
+Based on this assessment, we can see that the model passed tests for log linearity and non-constant variance. There does not seem to be a explicit trend in the scaled residuals for linearity. Scaled residuals also appear to be uniform. 
+
+```{r, fig.width= 6}
+nb_sim <- simulateResiduals(model_church)
+plotResiduals(nb_sim,
+              quantreg = FALSE)
+```
+
+
+### Lack of Non-Linearity
+
+
+### Independence                                            
+
+Model has passed test for independence of variables. No lag spikes are shown in the plot, and all data points are within the bounds set. The data is sorted in order of date recorded. We considered sorting it by the amount of days closed
+
+```{r Independence, fig.width= 6}
+gf_acf(~model_church)
+```
+
+
+## Model Selection (if needed)
+
+
+Because of a large amount of rows, we opted to use BIC. The most optimal BIC value has a model with region and signage of protocols. Along with that, social distancing could be intepreted as a significant predictor, followed by specific denomination. However, when selecting the best model, it would be best to use Region and the Signage of protocols as a interacting effect for it. 
+
+```{r}
+
+model_church <- model_church |>
+  update(na.action = 'na.fail')
+churchDataDredge <- dredge(model_church, rank = 'BIC')
+churchDataDredge
+
+```
+
+
+
+## Prediction Plots
+
+### Prediction Plot for Categorical - Categorical Interaction
+
+```{r}
+church_pred_data3 <- expand.grid(Specific_denom = 'ELCA', 
+                                Regions = c('MW', 'NE', 'SE', 'SW', 'W'),
+                                Social_Distancing = TRUE,
+                                Signage_of_protocols = c(FALSE,TRUE),
+                                Livestreaming = TRUE,
+                                Over65_Props = 2)|>
+  mutate(Signage_of_protocols = factor(as.character(Signage_of_protocols)))
+```
+
+```{r}
+church_preds <- predict(model_church, 
+                        newdata = church_pred_data3,
+                        type = 'link',
+                        se.fit = TRUE)
+
+```
+
+```{r}
+church_pred_data3 <- church_pred_data3 |>
+  mutate(c_pred = exp(church_preds$fit),
+         ci_low = exp(church_preds$fit - 1.96*church_preds$se.fit),
+         ci_up = exp(church_preds$fit + 1.96*church_preds$se.fit))
+```
+
+```{r, fig.width= 6}
+gf_point(c_pred ~ Regions,
+         color = ~Signage_of_protocols,
+         position = position_dodge(0.5),
+         data = church_pred_data3) |>
+gf_errorbar(ci_low + ci_up ~ Regions,
+            color = ~Signage_of_protocols,
+            position = position_dodge(0.5)) |>
+gf_labs(y = 'Number of Weeks Closed', color = "Signage of Protocols")
+```
+
+
+Region seems to be significant in predicting weeks closed. This is especially true when determining if the region resided in has COVID protocols signed or not. When unsigned, there is not as much overlap in the regions, indicating higher variance in weeks closed. When signed, one can see that the amount of weeks closed is on average higher than regions where protocols are not signed. This could indicate that as an interacting effect paired with regions is a significant predictor for weeks closed. 
+
+
+```{r, fig.width= 6}
+gf_point(c_pred ~ Regions | Signage_of_protocols, data = church_pred_data3) |>
+  gf_errorbar(ci_low + ci_up ~ Regions | Signage_of_protocols)|>
+  gf_refine(scale_x_discrete(labels=c("Midwest", "North East", "South East", "South West", "West")), coord_flip()) |>
+  gf_labs(y = 'No. Weeks Closed')
+```   
+
+
+### Denomination Prediction Plot
+
+```{r hypothetical-dataset - Denomination}
+church_pred_data2 <- expand.grid(Specific_denom = c('PCA', 'CRC', 'ANG', 'B', 'ELCA', 'RCA'), 
+                                Regions = 'MW',
+                                Social_Distancing = TRUE,
+                                Signage_of_protocols = TRUE,
+                                Livestreaming = TRUE)
+```
+
+```{r SE-for-predictions - Denomination}
+preds <- predict(model_church,
+                 newdata = church_pred_data2,
+                 se.fit = TRUE,
+                 type = "link")
+glimpse(preds)
+```
+
+```{r}
+church_pred_data2 <- church_pred_data2 |>
+  mutate(pred = preds$fit,
+         pred.se = preds$se.fit,
+         CI_lower = pred - 1.96*pred.se,
+         CI_upper = pred + 1.96*pred.se)
+```
+
+
+```{r fig.height= 6}
+gf_point(pred ~ Specific_denom, 
+         data = church_pred_data2) |>
+  gf_labs(y = 'Predicted\n Weeks Closed',
+          x = 'Specific Denominations',
+          title = 'Predicted Weeks Closed by Denominations')|>
+  gf_refine(scale_x_discrete(labels=c("Presbyterian Church of America", "Christian Reformed Church", "Anglican Church", "Baptist Church", "Evangelical Lutheran Church", "Reformed Church of America")), coord_flip())|>
+  gf_errorbar(CI_lower + CI_upper ~ Specific_denom )
+ 
+```
+
+
+
+From this predicted plot, we can see that the denomination of a church can be a significant factor in predicting the amount of weeks closed. Based on denomination of a church, some churches can be predicted to have a higher amount of weeks closed (see Christian reformed and Evangelical), while others may be predicted to have less weeks closed (Baptist, Anglican). Some denominations have some overlap between them, however, due to the nature of how some denomination church culture has some overlap within them as well, denominations could still be used as a significant predictor.
+
+
+### Prediction Plot for Livestreaming
+
+```{r}
+church_pred_data4 <- expand.grid(Specific_denom = 'ELCA', 
+                                Regions = 'MW',
+                                Social_Distancing = TRUE,
+                                Signage_of_protocols = TRUE,
+                                Livestreaming = c(TRUE, FALSE)) |>
+  mutate(Signage_of_protocols = factor(as.character(Signage_of_protocols)))
+```
+
+```{r}
+church_predsS <- predict(model_church, 
+                        newdata = church_pred_data4,
+                        type = 'link',
+                        se.fit = TRUE)
+
+```
+
+```{r}
+church_pred_data4 <- church_pred_data4 |>
+  mutate(l_pred = church_predsS$fit,
+         l_pred.se = church_predsS$se.fit)
+```
+
+```{r}
+church_pred_data4 <- church_pred_data4 |>
+  mutate(l_pred = exp(church_predsS$fit),
+         ci_low = exp(church_predsS$fit - 1.96*church_predsS$se.fit),
+         ci_up = exp(church_predsS$fit + 1.96*church_predsS$se.fit))
+```
+
+```{r}
+gf_point(l_pred ~ Livestreaming, data = church_pred_data4) %>% 
+  gf_labs(x = "Live Streaming", y = "Predicted Weeks Closed")|>
+  gf_errorbar(ci_low + ci_up ~ Livestreaming)
+```
+
+
+## Social distancing
+
+```{r}
+church_pred_data6 <- expand.grid(Specific_denom = 'ELCA', 
+                                Regions = 'MW',
+                                Social_Distancing = c(TRUE, FALSE),
+                                Signage_of_protocols = TRUE,
+                                Livestreaming = TRUE) 
+  
+
+
+church_preds6 <- predict(model_church, 
+                        newdata = church_pred_data6,
+                        type = 'link',
+                        se.fit = TRUE)
+
+
+
+church_pred_data6 <- church_pred_data6 |>
+  mutate(l_pred = church_preds6$fit,
+         l_pred.se = church_preds6$se.fit)
+
+
+
+church_pred_data6 <- church_pred_data6 |>
+  mutate(l_pred = exp(church_preds6$fit),
+         ci_low1 = exp(church_preds6$fit - 1.96*church_preds6$se.fit),
+         ci_up1 = exp(church_preds6$fit + 1.96*church_preds6$se.fit))
+
+
+
+gf_point(l_pred ~ Social_Distancing, data = church_pred_data6) %>% 
+  gf_labs(x = "Social Distancing", y = "Predicted Weeks Closed")|>
+  gf_errorbar(ci_low1 + ci_up1 ~ Social_Distancing)
+```
+
+
+
+
+Over 65 Proportion (asked by our partner)
+```{r}
+church_pred_data5 <- expand.grid(Specific_denom = 'ELCA', 
+                                Regions = 'MW',
+                                Social_Distancing = TRUE,
+                                Signage_of_protocols = TRUE,
+                                Livestreaming = TRUE,
+                                Over65_Props = seq(from = 1,
+                                                   by = 1,
+                                                   to = 9)) 
+  
+
+
+church_preds5 <- predict(model_church, 
+                        newdata = church_pred_data5,
+                        type = 'link',
+                        se.fit = TRUE)
+
+
+church_pred_data5 <- church_pred_data5 |>
+  mutate(elderly_pred = church_preds5$fit,
+         elderly_pred.se = church_preds5$se.fit)
+
+church_pred_data5 <- church_pred_data5 |>
+  mutate(elderly_pred = exp(church_preds5$fit),
+         ci_low2 = exp(church_preds5$fit - 1.96*church_preds5$se.fit),
+         ci_up2 = exp(church_preds5$fit + 1.96*church_preds5$se.fit))
+
+gf_line(elderly_pred ~ Over65_Props, data = church_pred_data5) %>% 
+  gf_labs(x = "Percentage of Elderly Population in Churches", y = "Predicted Weeks Closed")|>
+  gf_lims(x = c(1,9))|>
+  gf_ribbon(ci_low2 + ci_up2 ~ Over65_Props)
+```
+
+
+
+
+
+# ELCA
+Social Distancing differences between regions of ELCA churches (were asked by our partner to look at)
+
+```{r}
+elca_churches <- filter(Church, Specific_denom == "ELCA")
+ 
+elca_churches %>% 
+  drop_na(Regions) 
+
+elca_churches <- filter(elca_churches, Regions %in% c("MW", "NE", "SE", "W", "SW"))
+  
+gf_bar(~ Regions, fill = ~Social_Distancing, data = elca_churches) |>
+  gf_labs(x = "Regions", y = 'Social Distancing')|>
+  gf_theme(scale_fill_discrete('Social Distancing?'))
+
+```
+
+
